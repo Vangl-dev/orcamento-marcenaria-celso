@@ -1,9 +1,10 @@
 const CACHE_NAME = 'celso-marcenaria-v1';
+const BASE = self.location.pathname.replace(/\/sw\.js$/, '/');
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/favicon.svg'
+  BASE,
+  BASE + 'index.html',
+  BASE + 'manifest.json',
+  BASE + 'favicon.svg'
 ];
 
 // Install Event
@@ -61,7 +62,7 @@ self.addEventListener('fetch', (e) => {
       }).catch(() => {
         // Offline fallback for HTML requests
         if (e.request.headers.get('accept').includes('text/html')) {
-          return caches.match('/');
+          return caches.match(BASE + 'index.html');
         }
       });
     })

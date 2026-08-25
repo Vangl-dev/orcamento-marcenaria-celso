@@ -4,12 +4,12 @@
   "description": "Gerador de estimativas comerciais rápidas e PDFs elegantes para móveis planejados",
   "icons": [
     {
-      "src": "/favicon.svg",
+      "src": "./favicon.svg",
       "type": "image/svg+xml",
       "sizes": "any"
     }
   ],
-  "start_url": "/",
+  "start_url": "./",
   "background_color": "#FAF9F6",
   "theme_color": "#8B5A2B",
   "display": "standalone",
