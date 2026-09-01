@@ -9,7 +9,9 @@
  * @param {Array} data.items - Array of items { id, description, quantity, unit, baseValue }
  * @param {number} [data.compositionMarkup] - Percentage markup on materials (e.g., 120)
  * @param {Object} [data.labor] - Labor info { type: 'percentage'|'fixed'|'unit', value: number }
- * @param {Array} [data.additionalCosts] - Array of { id, name, type: 'included'|'fixed'|'percentage'|'manual', value: number }
+ * @param {Object} [data.services] - Services { freight: {type, value}, assembly: {type, value}, installation: {type, value} }
+ * @param {boolean} [data.flatPrice] - Whether using flat price mode
+ * @param {number} [data.flatTotalValue] - Total value in flat price mode
  * @param {Object} [data.discount] - Discount info { type: 'percentage'|'fixed', value: number }
  * @param {boolean} [data.useRange] - Whether to show a price range
  * @param {number} [data.safetyMargin] - Safety margin percentage (e.g., 5)
@@ -18,6 +20,8 @@
  */
 export function calculateEstimate(data, globalSettings) {
   const items = data.items || [];
+  const flatPrice = !!data.flatPrice;
+  const flatTotalValue = parseFloat(data.flatTotalValue) || 0;
   
   // 1. Raw Material Sum
   const rawMaterialSum = items.reduce((sum, item) => {
@@ -29,15 +33,15 @@ export function calculateEstimate(data, globalSettings) {
   // 2. Fator de Composição (Materials Markup)
   const compositionMarkup = data.compositionMarkup !== undefined 
     ? parseFloat(data.compositionMarkup) 
-    : (parseFloat(globalSettings.compositionMarkup) ?? 120);
+    : (parseFloat(globalSettings.pricing?.compositionMarkup) ?? 120);
   
   const baseMaterials = rawMaterialSum * (1 + (compositionMarkup / 100));
 
   // 3. Mão de Obra
-  const laborType = data.labor?.type || globalSettings.labor?.type || 'percentage';
+  const laborType = data.labor?.type || globalSettings.pricing?.labor?.type || 'percentage';
   const laborValRaw = data.labor?.value !== undefined 
     ? parseFloat(data.labor.value) 
-    : parseFloat(globalSettings.labor?.value ?? 100);
+    : parseFloat(globalSettings.pricing?.labor?.value ?? 100);
   
   let laborValue = 0;
   if (laborType === 'percentage') {
@@ -45,7 +49,6 @@ export function calculateEstimate(data, globalSettings) {
   } else if (laborType === 'fixed') {
     laborValue = laborValRaw;
   } else if (laborType === 'unit') {
-    // Sum of linear/square meters or units (excluding 'valor fechado' or treating as 1 unit)
     const totalUnits = items.reduce((sum, item) => {
       const qty = parseFloat(item.quantity) || 0;
       return sum + qty;
@@ -53,33 +56,28 @@ export function calculateEstimate(data, globalSettings) {
     laborValue = totalUnits * laborValRaw;
   }
 
-  // 4. Custos Adicionais (Frete, Montagem, Instalação, etc.)
-  const additionalCostsList = data.additionalCosts || [];
-  const calculatedCosts = additionalCostsList.map(cost => {
-    let costVal = 0;
-    const rawVal = parseFloat(cost.value) || 0;
-    
-    if (cost.type === 'included') {
-      costVal = 0;
-    } else if (cost.type === 'fixed' || cost.type === 'manual') {
-      costVal = rawVal;
-    } else if (cost.type === 'percentage') {
-      costVal = baseMaterials * (rawVal / 100);
-    }
+  // 4. Serviços (Frete, Montagem, Instalação)
+  const servicesData = data.services || {};
+  const defaultServices = globalSettings.pricing?.services || {};
+  
+  const freightType = servicesData.freight?.type || defaultServices.freight?.type || 'included';
+  const freightValue = parseFloat(servicesData.freight?.value) || parseFloat(defaultServices.freight?.value) || 0;
+  
+  const assemblyType = servicesData.assembly?.type || defaultServices.assembly?.type || 'included';
+  const assemblyValue = parseFloat(servicesData.assembly?.value) || parseFloat(defaultServices.assembly?.value) || 0;
+  
+  const installationType = servicesData.installation?.type || defaultServices.installation?.type || 'included';
+  const installationValue = parseFloat(servicesData.installation?.value) || parseFloat(defaultServices.installation?.value) || 0;
 
-    return {
-      id: cost.id,
-      name: cost.name,
-      type: cost.type,
-      rawValue: rawVal,
-      calculatedValue: costVal
-    };
-  });
+  const freightCost = freightType === 'included' ? 0 : freightValue;
+  const assemblyCost = assemblyType === 'included' ? 0 : assemblyValue;
+  const installationCost = installationType === 'included' ? 0 : installationValue;
+  
+  const servicesSum = freightCost + assemblyCost + installationCost;
 
-  const additionalCostsSum = calculatedCosts.reduce((sum, cost) => sum + cost.calculatedValue, 0);
-
-  // 5. Subtotal Bruto
-  const subtotalBruto = baseMaterials + laborValue + additionalCostsSum;
+  // 5. Subtotal (materiais + mão de obra + serviços)
+  const furnitureSubtotal = baseMaterials + laborValue;
+  const subtotalBruto = furnitureSubtotal + servicesSum;
 
   // 6. Desconto
   const discountType = data.discount?.type || 'fixed';
@@ -92,20 +90,20 @@ export function calculateEstimate(data, globalSettings) {
     discountValue = discountValRaw;
   }
   
-  // Prevent discount from being higher than subtotal
   const finalDiscount = Math.min(discountValue, subtotalBruto);
 
-  // 7. Investimento Total
-  const totalInvestment = subtotalBruto - finalDiscount;
+  // 7. Total
+  const calculatedTotal = subtotalBruto - finalDiscount;
+  const totalInvestment = flatPrice ? flatTotalValue : calculatedTotal;
 
   // 8. Faixa de Estimativa (Margem de Segurança)
-  const useRange = data.useRange !== undefined 
+  const useRange = !flatPrice && (data.useRange !== undefined 
     ? !!data.useRange 
-    : !!globalSettings.useRange;
+    : !!globalSettings.pricing?.useRange);
     
   const safetyMargin = data.safetyMargin !== undefined 
     ? parseFloat(data.safetyMargin) 
-    : (parseFloat(globalSettings.safetyMargin) ?? 5);
+    : (parseFloat(globalSettings.pricing?.safetyMargin) ?? 5);
 
   const minInvestment = totalInvestment * (1 - (safetyMargin / 100));
   const maxInvestment = totalInvestment * (1 + (safetyMargin / 100));
@@ -119,14 +117,22 @@ export function calculateEstimate(data, globalSettings) {
       rawValue: laborValRaw,
       value: laborValue
     },
-    additionalCosts: calculatedCosts,
-    additionalCostsSum,
+    furnitureSubtotal,
+    services: {
+      freight: { type: freightType, value: freightValue, cost: freightCost },
+      assembly: { type: assemblyType, value: assemblyValue, cost: assemblyCost },
+      installation: { type: installationType, value: installationValue, cost: installationCost }
+    },
+    servicesSum,
     subtotalBruto,
     discount: {
       type: discountType,
       rawValue: discountValRaw,
       value: finalDiscount
     },
+    calculatedTotal,
+    flatPrice,
+    flatTotalValue,
     totalInvestment,
     useRange,
     safetyMargin,

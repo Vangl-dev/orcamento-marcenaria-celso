@@ -7,9 +7,7 @@ import {
   Plus, 
   Trash2, 
   ChevronRight, 
-  ChevronLeft,
-  ArrowRight,
-  Info
+  ChevronLeft
 } from 'lucide-react';
 import { formatCurrency, calculateEstimate } from '../utils/calculator';
 import PdfProposal from './PdfProposal';
@@ -29,11 +27,24 @@ export default function EstimateWizard({
     items: [],
     compositionMarkup: settings.pricing.compositionMarkup,
     labor: { ...settings.pricing.labor },
-    additionalCosts: JSON.parse(JSON.stringify(settings.pricing.additionalCosts)),
+    services: {
+      freight: { type: settings.pricing.services?.freight?.type || 'included', value: settings.pricing.services?.freight?.value || 0 },
+      assembly: { type: settings.pricing.services?.assembly?.type || 'included', value: settings.pricing.services?.assembly?.value || 0 },
+      installation: { type: settings.pricing.services?.installation?.type || 'included', value: settings.pricing.services?.installation?.value || 0 }
+    },
+    flatPrice: false,
+    flatTotalValue: 0,
     discount: { type: 'fixed', value: 0 },
     useRange: settings.pricing.useRange,
     safetyMargin: settings.pricing.safetyMargin,
     terms: { ...settings.terms },
+    paymentConditions: {
+      paymentMethod: 'personalizado',
+      paymentDescription: settings.terms?.payment || '50% na aprovação + 50% na entrega',
+      entryPercentage: 50,
+      installments: 2,
+      balanceCondition: 'saldo na entrega dos móveis'
+    },
     notes: ''
   });
 
@@ -104,12 +115,23 @@ export default function EstimateWizard({
     }));
   };
 
-  const handleAdditionalCostChange = (id, field, val) => {
+  const handleAdditionalCostChange = (serviceId, field, val) => {
     setEstimate(prev => ({
       ...prev,
-      additionalCosts: prev.additionalCosts.map(cost => 
-        cost.id === id ? { ...cost, [field]: val } : cost
-      )
+      services: {
+        ...prev.services,
+        [serviceId]: { ...prev.services[serviceId], [field]: val }
+      }
+    }));
+  };
+
+  const handleServiceValueChange = (serviceId, val) => {
+    setEstimate(prev => ({
+      ...prev,
+      services: {
+        ...prev.services,
+        [serviceId]: { ...prev.services[serviceId], value: parseFloat(val) || 0 }
+      }
     }));
   };
 
@@ -129,6 +151,38 @@ export default function EstimateWizard({
 
   const handleNotesChange = (val) => {
     setEstimate(prev => ({ ...prev, notes: val }));
+  };
+
+  const handlePaymentConditionChange = (field, val) => {
+    setEstimate(prev => ({
+      ...prev,
+      paymentConditions: { ...prev.paymentConditions, [field]: val }
+    }));
+  };
+
+  const handlePaymentMethodSelect = (method) => {
+    setEstimate(prev => ({
+      ...prev,
+      paymentConditions: {
+        ...prev.paymentConditions,
+        paymentMethod: method,
+        entryPercentage: method === 'a_vista' ? 0 : (method === 'parcelado' ? 0 : prev.paymentConditions.entryPercentage)
+      }
+    }));
+  };
+
+  const calculateEstEntryValue = () => {
+    const total = estimate.flatPrice ? estimate.flatTotalValue : calculated.totalInvestment;
+    const pct = estimate.paymentConditions.entryPercentage || 0;
+    return total * (pct / 100);
+  };
+
+  const calculateEstInstallmentValue = () => {
+    const total = estimate.flatPrice ? estimate.flatTotalValue : calculated.totalInvestment;
+    const entry = calculateEstEntryValue();
+    const remaining = total - entry;
+    const inst = estimate.paymentConditions.installments || 1;
+    return remaining / inst;
   };
 
   const handleSaveAndExit = () => {
@@ -434,36 +488,129 @@ export default function EstimateWizard({
 
           {/* Custos Adicionais específicos */}
           <div className="add-item-form">
-            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '10px' }}>Frete & Serviços adicionais</h4>
-            {estimate.additionalCosts.map(cost => (
-              <div key={cost.id} className="cost-toggle-row">
-                <div>
-                  <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{cost.name}</span>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <select 
-                    className="form-input select-unit"
-                    value={cost.type}
-                    onChange={(e) => handleAdditionalCostChange(cost.id, 'type', e.target.value)}
-                    style={{ padding: '6px 24px 6px 10px', fontSize: '0.8rem', width: '120px' }}
-                  >
-                    <option value="included">Incluso</option>
-                    <option value="fixed">R$ Fixo</option>
-                    <option value="percentage">% Base</option>
-                    <option value="manual">Manual</option>
-                  </select>
-                  {cost.type !== 'included' && (
-                    <input 
-                      type="number" 
-                      className="form-input"
-                      value={cost.value}
-                      onChange={(e) => handleAdditionalCostChange(cost.id, 'value', parseFloat(e.target.value) || 0)}
-                      style={{ width: '80px', padding: '6px 10px', fontSize: '0.8rem' }}
-                    />
-                  )}
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '10px' }}>Frete & Serviços</h4>
+            
+            <div className="cost-toggle-row">
+              <div>
+                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Frete</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <select 
+                  className="form-input select-unit"
+                  value={estimate.services.freight.type}
+                  onChange={(e) => handleAdditionalCostChange('freight', 'type', e.target.value)}
+                  style={{ padding: '6px 24px 6px 10px', fontSize: '0.8rem', width: '120px' }}
+                >
+                  <option value="included">Incluso</option>
+                  <option value="separate">Valor separado</option>
+                </select>
+                {estimate.services.freight.type === 'separate' && (
+                  <input 
+                    type="number" 
+                    className="form-input"
+                    value={estimate.services.freight.value || ''}
+                    onChange={(e) => handleServiceValueChange('freight', e.target.value)}
+                    placeholder="R$"
+                    style={{ width: '100px', padding: '6px 10px', fontSize: '0.8rem' }}
+                    inputMode="decimal"
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="cost-toggle-row">
+              <div>
+                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Montagem</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <select 
+                  className="form-input select-unit"
+                  value={estimate.services.assembly.type}
+                  onChange={(e) => handleAdditionalCostChange('assembly', 'type', e.target.value)}
+                  style={{ padding: '6px 24px 6px 10px', fontSize: '0.8rem', width: '120px' }}
+                >
+                  <option value="included">Inclusa</option>
+                  <option value="separate">Valor separado</option>
+                </select>
+                {estimate.services.assembly.type === 'separate' && (
+                  <input 
+                    type="number" 
+                    className="form-input"
+                    value={estimate.services.assembly.value || ''}
+                    onChange={(e) => handleServiceValueChange('assembly', e.target.value)}
+                    placeholder="R$"
+                    style={{ width: '100px', padding: '6px 10px', fontSize: '0.8rem' }}
+                    inputMode="decimal"
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="cost-toggle-row" style={{ borderBottom: 'none' }}>
+              <div>
+                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Instalação</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <select 
+                  className="form-input select-unit"
+                  value={estimate.services.installation.type}
+                  onChange={(e) => handleAdditionalCostChange('installation', 'type', e.target.value)}
+                  style={{ padding: '6px 24px 6px 10px', fontSize: '0.8rem', width: '120px' }}
+                >
+                  <option value="included">Inclusa</option>
+                  <option value="separate">Valor separado</option>
+                </select>
+                {estimate.services.installation.type === 'separate' && (
+                  <input 
+                    type="number" 
+                    className="form-input"
+                    value={estimate.services.installation.value || ''}
+                    onChange={(e) => handleServiceValueChange('installation', e.target.value)}
+                    placeholder="R$"
+                    style={{ width: '100px', padding: '6px 10px', fontSize: '0.8rem' }}
+                    inputMode="decimal"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Preço Fechado */}
+          <div className="add-item-form">
+            <div className="cost-toggle-row" style={{ borderBottom: 'none', padding: '0' }}>
+              <div>
+                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Preço Fechado</span>
+                <p style={{ fontSize: '0.75rem', color: '#8c8279', margin: '2px 0 0' }}>
+                  Informe o valor total sem discriminar itens
+                </p>
+              </div>
+              <label className="switch">
+                <input 
+                  type="checkbox" 
+                  checked={estimate.flatPrice}
+                  onChange={(e) => setEstimate(prev => ({ ...prev, flatPrice: e.target.checked }))}
+                />
+                <span className="slider"></span>
+              </label>
+            </div>
+            
+            {estimate.flatPrice && (
+              <div className="form-group" style={{ marginTop: '12px' }}>
+                <label className="form-label">Valor Total Contratado (R$)</label>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    placeholder="Ex: 18500"
+                    value={estimate.flatTotalValue || ''}
+                    onChange={(e) => setEstimate(prev => ({ ...prev, flatTotalValue: parseFloat(e.target.value) || 0 }))}
+                    style={{ paddingRight: '40px', fontSize: '1.1rem', fontWeight: 700 }}
+                    inputMode="decimal"
+                  />
+                  <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold', color: 'var(--primary-color)' }}>R$</span>
                 </div>
               </div>
-            ))}
+            )}
           </div>
 
           {/* Faixa de Investimento e Condições comerciais */}
@@ -497,16 +644,108 @@ export default function EstimateWizard({
           {/* Condições comerciais */}
           <div className="add-item-form">
             <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '10px' }}>Condições Comerciais</h4>
-            
-            <div className="form-group">
-              <label className="form-label">Forma de Pagamento</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                value={estimate.terms.payment}
-                onChange={(e) => handleTermsChange('payment', e.target.value)}
-              />
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+              {[
+                { value: 'a_vista', label: 'À Vista' },
+                { value: 'entrada_saldo', label: 'Entrada + Saldo' },
+                { value: 'parcelado', label: 'Parcelado' },
+                { value: 'entrada_parcelas', label: 'Entrada + Parcelas' },
+                { value: 'personalizado', label: 'Personalizado' }
+              ].map(method => (
+                <button
+                  key={method.value}
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => handlePaymentMethodSelect(method.value)}
+                  style={{
+                    padding: '10px 6px',
+                    fontSize: '0.75rem',
+                    fontWeight: estimate.paymentConditions.paymentMethod === method.value ? 700 : 400,
+                    border: estimate.paymentConditions.paymentMethod === method.value ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                    backgroundColor: estimate.paymentConditions.paymentMethod === method.value ? 'var(--primary-color-light)' : 'var(--card-bg)'
+                  }}
+                >
+                  {method.label}
+                </button>
+              ))}
             </div>
+
+            {estimate.paymentConditions.paymentMethod !== 'a_vista' && estimate.paymentConditions.paymentMethod !== 'personalizado' && (
+              <>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Entrada (%)</label>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      value={estimate.paymentConditions.entryPercentage}
+                      onChange={(e) => handlePaymentConditionChange('entryPercentage', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Valor da Entrada</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      value={formatCurrency(calculateEstEntryValue())}
+                      readOnly
+                      style={{ backgroundColor: '#f5f5f5' }}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {(estimate.paymentConditions.paymentMethod === 'parcelado' || estimate.paymentConditions.paymentMethod === 'entrada_parcelas') && (
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Nº Parcelas</label>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={estimate.paymentConditions.installments}
+                    onChange={(e) => handlePaymentConditionChange('installments', parseInt(e.target.value) || 1)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Valor da Parcela</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={formatCurrency(calculateEstInstallmentValue())}
+                    readOnly
+                    style={{ backgroundColor: '#f5f5f5' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {estimate.paymentConditions.paymentMethod !== 'a_vista' && estimate.paymentConditions.paymentMethod !== 'personalizado' && (
+              <div className="form-group">
+                <label className="form-label">Saldo Restante</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={formatCurrency((estimate.flatPrice ? estimate.flatTotalValue : calculated.totalInvestment) - calculateEstEntryValue())}
+                  readOnly
+                  style={{ backgroundColor: '#f5f5f5' }}
+                />
+              </div>
+            )}
+
+            {estimate.paymentConditions.paymentMethod === 'personalizado' && (
+              <div className="form-group">
+                <label className="form-label">Condição de Pagamento</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={estimate.paymentConditions.paymentDescription}
+                  onChange={(e) => handlePaymentConditionChange('paymentDescription', e.target.value)}
+                  placeholder="Ex: 50% na aprovação + 50% na entrega"
+                />
+              </div>
+            )}
 
             <div className="form-row">
               <div className="form-group">
@@ -557,25 +796,41 @@ export default function EstimateWizard({
 
           {/* Summary values prior to PDF preview */}
           <div className="realtime-total-banner" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#6b5a4b' }}>
-              <span>Subtotal Projetos:</span>
-              <span>{formatCurrency(calculated.baseMaterials + calculated.labor.value)}</span>
-            </div>
-            {calculated.additionalCostsSum > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#6b5a4b' }}>
-                <span>Custos Adicionais:</span>
-                <span>+{formatCurrency(calculated.additionalCostsSum)}</span>
-              </div>
+            {!estimate.flatPrice && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#6b5a4b' }}>
+                  <span>Móveis (material + mão de obra):</span>
+                  <span>{formatCurrency(calculated.furnitureSubtotal)}</span>
+                </div>
+                {calculated.services.freight.cost > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#6b5a4b' }}>
+                    <span>Frete:</span>
+                    <span>+{formatCurrency(calculated.services.freight.cost)}</span>
+                  </div>
+                )}
+                {calculated.services.assembly.cost > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#6b5a4b' }}>
+                    <span>Montagem:</span>
+                    <span>+{formatCurrency(calculated.services.assembly.cost)}</span>
+                  </div>
+                )}
+                {calculated.services.installation.cost > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#6b5a4b' }}>
+                    <span>Instalação:</span>
+                    <span>+{formatCurrency(calculated.services.installation.cost)}</span>
+                  </div>
+                )}
+                {calculated.discount.value > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--status-expired-text)' }}>
+                    <span>Desconto:</span>
+                    <span>-{formatCurrency(calculated.discount.value)}</span>
+                  </div>
+                )}
+                <hr style={{ borderColor: 'var(--border-color)', margin: '4px 0' }} />
+              </>
             )}
-            {calculated.discount.value > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--status-expired-text)' }}>
-                <span>Desconto concedido:</span>
-                <span>-{formatCurrency(calculated.discount.value)}</span>
-              </div>
-            )}
-            <hr style={{ borderColor: 'var(--border-color)', margin: '4px 0' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 700 }}>Total Estimado:</span>
+              <span style={{ fontWeight: 700 }}>{estimate.flatPrice ? 'Valor Total:' : 'Total:'}</span>
               <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>
                 {calculated.useRange ? (
                   <span style={{ fontSize: '1rem' }}>

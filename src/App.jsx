@@ -4,24 +4,34 @@ import {
   PlusCircle, 
   Sliders, 
   WifiOff,
-  Wrench
+  Wrench,
+  ScrollText
 } from 'lucide-react';
 import { 
   getSettings, 
   saveSettings, 
   getEstimates, 
   saveEstimates, 
-  generateNextEstimateId 
+  generateNextEstimateId,
+  getContracts,
+  saveContracts,
+  generateNextContractId,
+  createContractFromEstimate
 } from './utils/storage';
+import { calculateEstimate } from './utils/calculator';
 import Dashboard from './components/Dashboard';
 import EstimateWizard from './components/EstimateWizard';
 import Settings from './components/Settings';
+import ContractWizard from './components/ContractWizard';
+import ContractsList from './components/ContractsList';
 
 export default function App() {
-  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' | 'wizard' | 'settings'
+  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' | 'wizard' | 'settings' | 'contracts' | 'contract-wizard'
   const [settings, setSettings] = useState(getSettings());
   const [estimates, setEstimates] = useState(getEstimates());
+  const [contracts, setContracts] = useState(getContracts());
   const [currentEstimate, setCurrentEstimate] = useState(null); // Estimate being created/edited
+  const [currentContract, setCurrentContract] = useState(null); // Contract being created/edited
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   // Monitor network status
@@ -53,11 +63,19 @@ export default function App() {
   const handleNavigateToDashboard = () => {
     setActiveView('dashboard');
     setCurrentEstimate(null);
+    setCurrentContract(null);
   };
 
   const handleNavigateToSettings = () => {
     setActiveView('settings');
     setCurrentEstimate(null);
+    setCurrentContract(null);
+  };
+
+  const handleNavigateToContracts = () => {
+    setActiveView('contracts');
+    setCurrentEstimate(null);
+    setCurrentContract(null);
   };
 
   // Actions: Estimate Lifecycle
@@ -122,6 +140,98 @@ export default function App() {
     return success;
   };
 
+  // Actions: Contract Lifecycle
+  const handleCreateNewContract = () => {
+    const nextId = generateNextContractId(contracts);
+    const newContract = {
+      id: nextId,
+      date: new Date().toISOString().split('T')[0],
+      status: 'rascunho',
+      estimateReference: '',
+      origin: 'direct',
+      client: { name: '', whatsapp: '', email: '', address: '', cpf: '' },
+      items: [],
+      totalValue: 0,
+      discount: { type: 'fixed', value: 0 },
+      services: {
+        freight: { type: settings.pricing.services?.freight?.type || 'included', value: settings.pricing.services?.freight?.value || 0 },
+        assembly: { type: settings.pricing.services?.assembly?.type || 'included', value: settings.pricing.services?.assembly?.value || 0 },
+        installation: { type: settings.pricing.services?.installation?.type || 'included', value: settings.pricing.services?.installation?.value || 0 }
+      },
+      contractTerms: {
+        paymentMethod: settings.contractDefaults?.payment?.paymentType || 'entrada_saldo',
+        payment: settings.contractDefaults?.payment?.paymentDescription || '50% na aprovação + 50% na entrega',
+        entryPercentage: settings.contractDefaults?.payment?.entryPercentage || 50,
+        entryValue: 0,
+        installments: settings.contractDefaults?.payment?.installments || 2,
+        installmentValue: 0,
+        balanceCondition: settings.contractDefaults?.payment?.balanceCondition || 'saldo na entrega dos móveis',
+        lateFeePercentage: settings.contractDefaults?.defaultRate?.lateFeePercentage || 2,
+        monthlyInterest: settings.contractDefaults?.defaultRate?.monthlyInterest || 1,
+        monetaryCorrection: settings.contractDefaults?.defaultRate?.monetaryCorrection !== false,
+        fabricationDays: settings.contractDefaults?.deadline?.fabricationDays || 30,
+        installationDays: settings.contractDefaults?.deadline?.installationDays || 1,
+        workingDaysOnly: settings.contractDefaults?.deadline?.workingDaysOnly !== false,
+        surplus: settings.contractDefaults?.surplus || 'company'
+      },
+      address: '',
+      notes: '',
+      witnesses: [
+        { name: '', cpf: '' },
+        { name: '', cpf: '' }
+      ],
+      documentId: '',
+      hash: '',
+      acceptanceDate: null,
+      acceptanceMethod: null
+    };
+    setCurrentContract(newContract);
+    setActiveView('contract-wizard');
+  };
+
+  const handleConvertEstimateToContract = (estimate) => {
+    const calculated = calculateEstimate(estimate, settings);
+    const newContract = createContractFromEstimate(estimate, calculated, settings);
+    newContract.id = generateNextContractId(contracts);
+    setCurrentContract(newContract);
+    setActiveView('contract-wizard');
+  };
+
+  const handleEditContract = (contract) => {
+    setCurrentContract(JSON.parse(JSON.stringify(contract)));
+    setActiveView('contract-wizard');
+  };
+
+  const handleDeleteContract = (id) => {
+    const updated = contracts.filter(c => c.id !== id);
+    setContracts(updated);
+    saveContracts(updated);
+  };
+
+  const handleContractStatusChange = (id, newStatus) => {
+    const updated = contracts.map(c => 
+      c.id === id ? { ...c, status: newStatus } : c
+    );
+    setContracts(updated);
+    saveContracts(updated);
+  };
+
+  const handleSaveContract = (contractData) => {
+    let updated;
+    const exists = contracts.some(c => c.id === contractData.id);
+    
+    if (exists) {
+      updated = contracts.map(c => c.id === contractData.id ? contractData : c);
+    } else {
+      updated = [contractData, ...contracts];
+    }
+    
+    setContracts(updated);
+    saveContracts(updated);
+    setActiveView('contracts');
+    setCurrentContract(null);
+  };
+
   return (
     <div className="app-container">
       {/* Offline Alert Banner */}
@@ -160,6 +270,7 @@ export default function App() {
             onEdit={handleEditEstimate}
             onDelete={handleDeleteEstimate}
             onStatusChange={handleStatusChange}
+            onConvertToContract={handleConvertEstimateToContract}
           />
         )}
 
@@ -172,6 +283,28 @@ export default function App() {
           />
         )}
 
+        {activeView === 'contracts' && (
+          <ContractsList
+            contracts={contracts}
+            estimates={estimates}
+            settings={settings}
+            onCreateNew={handleCreateNewContract}
+            onConvertFromEstimate={handleConvertEstimateToContract}
+            onEdit={handleEditContract}
+            onDelete={handleDeleteContract}
+            onStatusChange={handleContractStatusChange}
+          />
+        )}
+
+        {activeView === 'contract-wizard' && (
+          <ContractWizard
+            initialContract={currentContract}
+            settings={settings}
+            onSave={handleSaveContract}
+            onCancel={handleNavigateToContracts}
+          />
+        )}
+
         {activeView === 'settings' && (
           <Settings 
             settings={settings}
@@ -181,7 +314,7 @@ export default function App() {
       </main>
 
       {/* Bottom Sticky Tabs (Hidden in Wizard to save screen space) */}
-      {activeView !== 'wizard' && (
+      {activeView !== 'wizard' && activeView !== 'contract-wizard' && (
         <nav className="bottom-nav">
           <button 
             className={`nav-item ${activeView === 'dashboard' ? 'active' : ''}`}
@@ -198,6 +331,14 @@ export default function App() {
           >
             <PlusCircle size={24} />
             <span style={{ fontWeight: 700 }}>Novo</span>
+          </button>
+          
+          <button 
+            className={`nav-item ${activeView === 'contracts' ? 'active' : ''}`}
+            onClick={handleNavigateToContracts}
+          >
+            <ScrollText size={20} />
+            <span>Contratos</span>
           </button>
           
           <button 

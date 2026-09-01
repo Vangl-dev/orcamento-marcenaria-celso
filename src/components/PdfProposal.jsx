@@ -4,7 +4,6 @@ import {
   Share2, 
   MessageCircle, 
   ChevronLeft, 
-  FileText,
   Copy,
   Check
 } from 'lucide-react';
@@ -310,11 +309,21 @@ export default function PdfProposal({ estimate, settings, onBack }) {
                 <div>
                   <strong>Prazo Estimado:</strong> {terms.daysValue} dias {terms.daysType === 'uteis' ? 'úteis' : 'corridos'}
                 </div>
-                {calculated.additionalCosts.map(cost => (
-                  <div key={cost.id}>
-                    <strong>{cost.name}:</strong> {cost.type === 'included' ? 'Incluso' : formatCurrency(cost.calculatedValue)}
+                {calculated.services.freight.type !== 'not_included' && (
+                  <div>
+                    <strong>Frete:</strong> {calculated.services.freight.type === 'included' ? 'Incluso' : formatCurrency(calculated.services.freight.cost)}
                   </div>
-                ))}
+                )}
+                {calculated.services.assembly.type !== 'not_included' && (
+                  <div>
+                    <strong>Montagem:</strong> {calculated.services.assembly.type === 'included' ? 'Inclusa' : formatCurrency(calculated.services.assembly.cost)}
+                  </div>
+                )}
+                {calculated.services.installation.type !== 'not_included' && (
+                  <div>
+                    <strong>Instalação:</strong> {calculated.services.installation.type === 'included' ? 'Inclusa' : formatCurrency(calculated.services.installation.cost)}
+                  </div>
+                )}
               </div>
             </div>
 

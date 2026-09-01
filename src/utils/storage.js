@@ -4,7 +4,8 @@
 
 const STORAGE_KEYS = {
   SETTINGS: 'celso_marcenaria_settings',
-  ESTIMATES: 'celso_marcenaria_estimates'
+  ESTIMATES: 'celso_marcenaria_estimates',
+  CONTRACTS: 'celso_marcenaria_contracts'
 };
 
 const DEFAULT_SETTINGS = {
@@ -36,11 +37,12 @@ const DEFAULT_SETTINGS = {
     useRange: true,
     safetyMargin: 5, // 5% range
     maxDiscount: 10, // 10% max suggested discount
-    additionalCosts: [
-      { id: 'frete', name: 'Frete', type: 'fixed', value: 300 },
-      { id: 'montagem', name: 'Montagem', type: 'included', value: 0 },
-      { id: 'instalacao', name: 'Instalação', type: 'included', value: 0 }
-    ]
+    services: {
+      freight: { type: 'included', value: 0 },
+      assembly: { type: 'included', value: 0 },
+      installation: { type: 'included', value: 0 }
+    },
+    flatPrice: false
   },
   terms: {
     payment: '50% na aprovação + 50% na entrega',
@@ -56,7 +58,30 @@ const DEFAULT_SETTINGS = {
     { id: 'medidas', title: 'Medições Técnicas', text: 'As medidas apresentadas nesta estimativa são aproximadas e não substituem a medição técnica necessária para a elaboração do projeto executivo.', active: true },
     { id: 'alteracoes', title: 'Alterações de Escopo', text: 'Alterações de escopo, materiais, dimensões, ferragens, acessórios ou especificações poderão resultar em alteração do valor final.', active: true },
     { id: 'validade', title: 'Validade da Proposta', text: 'Esta estimativa possui validade pelo período indicado e poderá ser revista após o término de sua validade.', active: true }
-  ]
+  ],
+  contractDefaults: {
+    paymentMethod: 'entry_balance',
+    entryPercentage: 50,
+    entryType: 'percentage',
+    installments: 2,
+    balanceCondition: 'na entrega dos móveis',
+    defaultRate: {
+      lateFeePercentage: 2,
+      monthlyInterest: 1,
+      monetaryCorrection: true
+    },
+    deadline: {
+      fabricationDays: 30,
+      installationDays: 1,
+      workingDaysOnly: true
+    },
+    surplus: 'company',
+    services: {
+      freight: 'included',
+      assembly: 'included',
+      installation: 'included'
+    }
+  }
 };
 
 // Seed estimates if none exist, so the user can see sample data
@@ -77,11 +102,13 @@ const DEFAULT_ESTIMATES = [
     ],
     compositionMarkup: 120,
     labor: { type: 'percentage', value: 100 },
-    additionalCosts: [
-      { id: 'frete', name: 'Frete', type: 'fixed', value: 300 },
-      { id: 'montagem', name: 'Montagem', type: 'included', value: 0 },
-      { id: 'instalacao', name: 'Instalação', type: 'included', value: 0 }
-    ],
+    services: {
+      freight: { type: 'included', value: 0 },
+      assembly: { type: 'included', value: 0 },
+      installation: { type: 'included', value: 0 }
+    },
+    flatPrice: false,
+    flatTotalValue: 0,
     discount: { type: 'percentage', value: 0 },
     useRange: true,
     safetyMargin: 5,
@@ -108,11 +135,13 @@ const DEFAULT_ESTIMATES = [
     ],
     compositionMarkup: 120,
     labor: { type: 'percentage', value: 100 },
-    additionalCosts: [
-      { id: 'frete', name: 'Frete', type: 'fixed', value: 300 },
-      { id: 'montagem', name: 'Montagem', type: 'included', value: 0 },
-      { id: 'instalacao', name: 'Instalação', type: 'included', value: 0 }
-    ],
+    services: {
+      freight: { type: 'included', value: 0 },
+      assembly: { type: 'included', value: 0 },
+      installation: { type: 'included', value: 0 }
+    },
+    flatPrice: false,
+    flatTotalValue: 0,
     discount: { type: 'fixed', value: 500 },
     useRange: false,
     safetyMargin: 5,
@@ -138,9 +167,26 @@ export function getSettings() {
     return {
       company: { ...DEFAULT_SETTINGS.company, ...settings.company },
       appearance: { ...DEFAULT_SETTINGS.appearance, ...settings.appearance },
-      pricing: { ...DEFAULT_SETTINGS.pricing, ...settings.pricing },
+      pricing: {
+        ...DEFAULT_SETTINGS.pricing,
+        ...settings.pricing,
+        services: {
+          ...DEFAULT_SETTINGS.pricing.services,
+          ...(settings.pricing?.services || settings.pricing?.additionalCosts || {})
+        }
+      },
       terms: { ...DEFAULT_SETTINGS.terms, ...settings.terms },
-      disclaimers: settings.disclaimers || DEFAULT_SETTINGS.disclaimers
+      disclaimers: settings.disclaimers || DEFAULT_SETTINGS.disclaimers,
+      contractDefaults: {
+        ...DEFAULT_SETTINGS.contractDefaults,
+        ...(settings.contractDefaults || {}),
+        defaultRate: { ...DEFAULT_SETTINGS.contractDefaults.defaultRate, ...(settings.contractDefaults?.defaultRate || {}) },
+        deadline: { ...DEFAULT_SETTINGS.contractDefaults.deadline, ...(settings.contractDefaults?.deadline || {}) },
+        services: {
+          ...DEFAULT_SETTINGS.contractDefaults.services,
+          ...(settings.contractDefaults?.services || {})
+        }
+      }
     };
   } catch (e) {
     console.error('Error reading settings', e);
@@ -199,4 +245,101 @@ export function generateNextEstimateId(estimates) {
 
   const nextNum = String(maxNum + 1).padStart(4, '0');
   return `EST-${currentYear}-${nextNum}`;
+}
+
+export function getContracts() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CONTRACTS);
+    if (!raw) {
+      return [];
+    }
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('Error reading contracts', e);
+    return [];
+  }
+}
+
+export function saveContracts(contracts) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(contracts));
+    return true;
+  } catch (e) {
+    console.error('Error saving contracts', e);
+    return false;
+  }
+}
+
+export function generateNextContractId(contracts) {
+  const currentYear = new Date().getFullYear();
+  const pattern = new RegExp(`^MC-${currentYear}-(\\d{4})$`);
+  
+  let maxNum = 0;
+  contracts.forEach(contract => {
+    const match = contract.id.match(pattern);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNum) {
+        maxNum = num;
+      }
+    }
+  });
+
+  const nextNum = String(maxNum + 1).padStart(4, '0');
+  return `MC-${currentYear}-${nextNum}`;
+}
+
+export function createContractFromEstimate(estimate, calculated, settings) {
+  const contractDefaults = settings.contractDefaults || {};
+  const services = estimate.services || {};
+  const estPayment = estimate.paymentConditions || {};
+  
+  const paymentMethod = estPayment.paymentMethod || contractDefaults.payment?.paymentType || 'entrada_saldo';
+  const entryPercentage = estPayment.entryPercentage ?? contractDefaults.payment?.entryPercentage ?? 50;
+  const installments = estPayment.installments ?? contractDefaults.payment?.installments ?? 2;
+
+  return {
+    id: '',
+    date: new Date().toISOString().split('T')[0],
+    status: 'rascunho',
+    estimateReference: estimate.id,
+    client: { ...estimate.client },
+    items: estimate.items.map(item => ({ ...item })),
+    totalValue: calculated.totalInvestment,
+    discount: { ...calculated.discount },
+    services: {
+      freight: { type: services.freight?.type || 'included', value: parseFloat(services.freight?.value) || 0 },
+      assembly: { type: services.assembly?.type || 'included', value: parseFloat(services.assembly?.value) || 0 },
+      installation: { type: services.installation?.type || 'included', value: parseFloat(services.installation?.value) || 0 }
+    },
+    flatPrice: estimate.flatPrice || false,
+    flatTotalValue: estimate.flatTotalValue || 0,
+    contractTerms: {
+      paymentMethod: paymentMethod,
+      payment: estPayment.paymentDescription || contractDefaults.payment?.paymentDescription || '50% na aprovação + 50% na entrega',
+      entryPercentage: entryPercentage,
+      entryValue: calculated.totalInvestment * (entryPercentage / 100),
+      installments: installments,
+      installmentValue: calculated.totalInvestment / installments,
+      balanceCondition: estPayment.balanceCondition || contractDefaults.payment?.balanceCondition || 'saldo na entrega dos móveis',
+      lateFeePercentage: contractDefaults.defaultRate?.lateFeePercentage || 2,
+      monthlyInterest: contractDefaults.defaultRate?.monthlyInterest || 1,
+      monetaryCorrection: contractDefaults.defaultRate?.monetaryCorrection !== false,
+      fabricationDays: contractDefaults.deadline?.fabricationDays || 30,
+      installationDays: contractDefaults.deadline?.installationDays || 1,
+      workingDaysOnly: contractDefaults.deadline?.workingDaysOnly !== false,
+      surplus: contractDefaults.surplus || 'company',
+      customPaymentText: ''
+    },
+    address: estimate.client.address || '',
+    notes: estimate.notes || '',
+    witnesses: [
+      { name: '', cpf: '' },
+      { name: '', cpf: '' }
+    ],
+    documentId: '',
+    hash: '',
+    acceptanceDate: null,
+    acceptanceMethod: null
+  };
 }

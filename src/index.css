@@ -1024,3 +1024,622 @@ input:checked + .slider:before {
   break-inside: avoid !important;
 }
 
+/* ============================================================
+   CONTRACT PDF — Premium Visual System
+   ============================================================ */
+
+.contract-style {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+  color: var(--text-color, #2d2016);
+  font-size: 8.5pt;
+}
+
+/* ── Page structure ── */
+.ct-page {
+  position: relative;
+}
+
+.ct-page + .ct-clauses,
+.ct-page + .ct-signatures-page {
+  padding-top: 0;
+}
+
+/* ── Full header (page 1 only) ── */
+.ct-header-full {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--primary-color, #7c5332);
+}
+
+.ct-header-full-left {
+  flex: 0 0 auto;
+}
+
+.ct-logo-full {
+  max-width: 100px;
+  max-height: 48px;
+  object-fit: contain;
+}
+
+.ct-logo-text {
+  font-size: 14pt;
+  font-weight: 800;
+  color: var(--primary-color, #7c5332);
+  letter-spacing: -0.3px;
+}
+
+.ct-header-full-right {
+  text-align: right;
+  font-size: 7pt;
+  color: #888;
+  line-height: 1.6;
+}
+
+.ct-company-name {
+  font-size: 9pt;
+  font-weight: 700;
+  color: var(--primary-color, #7c5332);
+  margin: 0 0 2px;
+}
+
+/* ── Title block ── */
+.ct-title-block {
+  text-align: center;
+  margin-bottom: 24px;
+  padding: 16px 0;
+}
+
+.ct-main-title {
+  font-size: 11pt;
+  font-weight: 800;
+  color: var(--text-color, #2d2016);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+
+.ct-contract-id {
+  font-size: 10pt;
+  color: var(--primary-color, #7c5332);
+  margin: 0 0 4px;
+}
+
+.ct-contract-id strong {
+  font-weight: 800;
+}
+
+.ct-estimate-ref {
+  font-size: 7.5pt;
+  color: #999;
+  margin: 4px 0 0;
+}
+
+.ct-date {
+  font-size: 7.5pt;
+  color: #999;
+  margin: 4px 0 0;
+}
+
+/* ── Parties ── */
+.ct-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.ct-party {
+  background: linear-gradient(135deg, rgba(var(--primary-color-rgb, 124,83,50), 0.03), rgba(var(--primary-color-rgb, 124,83,50), 0.01));
+  padding: 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(var(--primary-color-rgb, 124,83,50), 0.12);
+}
+
+.ct-party-label {
+  font-size: 7pt;
+  font-weight: 700;
+  color: var(--primary-color, #7c5332);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(var(--primary-color-rgb, 124,83,50), 0.15);
+}
+
+.ct-party-name {
+  font-size: 10pt;
+  font-weight: 700;
+  color: var(--text-color, #2d2016);
+  margin: 0 0 4px;
+}
+
+.ct-party p {
+  font-size: 7.5pt;
+  margin: 2px 0;
+  color: #666;
+}
+
+.ct-party-address {
+  margin-top: 4px !important;
+  color: #888 !important;
+  font-style: italic;
+}
+
+/* ── Summary highlight boxes ── */
+.ct-summary-boxes {
+  margin-bottom: 24px;
+}
+
+.ct-box-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ct-box {
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+
+.ct-box-main {
+  background: linear-gradient(135deg, rgba(var(--primary-color-rgb, 124,83,50), 0.06), rgba(var(--primary-color-rgb, 124,83,50), 0.02));
+  border: 1px solid rgba(var(--primary-color-rgb, 124,83,50), 0.15);
+  text-align: center;
+}
+
+.ct-box-sm {
+  flex: 1;
+  background: rgba(var(--primary-color-rgb, 124,83,50), 0.03);
+  border: 1px solid rgba(var(--primary-color-rgb, 124,83,50), 0.1);
+  text-align: center;
+}
+
+.ct-box-xs {
+  flex: 1;
+  background: rgba(var(--primary-color-rgb, 124,83,50), 0.03);
+  border: 1px solid rgba(var(--primary-color-rgb, 124,83,50), 0.1);
+  text-align: center;
+  padding: 8px 10px;
+}
+
+.ct-box-label {
+  display: block;
+  font-size: 6.5pt;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+
+.ct-box-value {
+  display: block;
+  font-size: 18pt;
+  font-weight: 800;
+  color: var(--primary-color, #7c5332);
+}
+
+.ct-box-value-sm {
+  display: block;
+  font-size: 11pt;
+  font-weight: 700;
+  color: var(--primary-color, #7c5332);
+}
+
+.ct-box-value-xs {
+  display: block;
+  font-size: 9pt;
+  font-weight: 700;
+  color: var(--primary-color, #7c5332);
+}
+
+/* ── Section headers (for items table) ── */
+.ct-section {
+  margin-bottom: 16px;
+}
+
+.ct-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(var(--primary-color-rgb, 124,83,50), 0.15);
+}
+
+.ct-section-num {
+  font-size: 8pt;
+  font-weight: 700;
+  color: var(--primary-color, #7c5332);
+}
+
+.ct-section-name {
+  font-size: 8pt;
+  font-weight: 700;
+  color: var(--text-color, #2d2016);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Table ── */
+.ct-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ct-table th {
+  text-align: left;
+  padding: 7px 10px;
+  font-size: 6.5pt;
+  text-transform: uppercase;
+  color: #999;
+  border-bottom: 1px solid rgba(var(--primary-color-rgb, 124,83,50), 0.1);
+  letter-spacing: 0.3px;
+}
+
+.ct-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid rgba(var(--primary-color-rgb, 124,83,50), 0.06);
+  font-size: 8pt;
+}
+
+.ct-table .align-right {
+  text-align: right;
+}
+
+/* ── Clauses ── */
+.ct-clauses {
+  margin-top: 4px;
+}
+
+.ct-clause {
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(var(--primary-color-rgb, 124,83,50), 0.06);
+}
+
+.ct-clause:last-child {
+  border-bottom: none;
+}
+
+.ct-clause-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ct-clause-num {
+  font-size: 11pt;
+  font-weight: 800;
+  color: var(--primary-color, #7c5332);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ct-clause-title {
+  font-size: 8.5pt;
+  font-weight: 700;
+  color: var(--text-color, #2d2016);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.ct-clause p {
+  font-size: 8pt;
+  margin: 5px 0;
+  color: #444;
+  text-align: justify;
+  line-height: 1.65;
+}
+
+/* ── Lists with bullets ── */
+.ct-list {
+  font-size: 8pt;
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+  color: #444;
+}
+
+.ct-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 4px 0;
+  line-height: 1.6;
+}
+
+.ct-bullet {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  min-width: 5px;
+  border-radius: 50%;
+  background: var(--primary-color, #7c5332);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+/* ── Value highlight ── */
+.ct-value-highlight {
+  text-align: center;
+  font-size: 14pt;
+  font-weight: 800;
+  color: var(--primary-color, #7c5332);
+  padding: 8px 0;
+  margin: 6px 0;
+  border-top: 1px solid rgba(var(--primary-color-rgb, 124,83,50), 0.1);
+  border-bottom: 1px solid rgba(var(--primary-color-rgb, 124,83,50), 0.1);
+}
+
+/* ── Payment highlight ── */
+.ct-payment-highlight {
+  background: rgba(var(--primary-color-rgb, 124,83,50), 0.04);
+  border-left: 3px solid var(--primary-color, #7c5332);
+  padding: 10px 14px;
+  border-radius: 0 4px 4px 0;
+  margin: 8px 0;
+}
+
+.ct-payment-method {
+  font-size: 8.5pt;
+  font-weight: 600;
+  color: var(--text-color, #2d2016);
+}
+
+/* ── Info grid (payment details) ── */
+.ct-info-grid {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.ct-info-item {
+  flex: 1;
+  background: rgba(var(--primary-color-rgb, 124,83,50), 0.03);
+  border: 1px solid rgba(var(--primary-color-rgb, 124,83,50), 0.08);
+  border-radius: 4px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.ct-info-label {
+  display: block;
+  font-size: 6pt;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.ct-info-value {
+  display: block;
+  font-size: 11pt;
+  font-weight: 700;
+  color: var(--primary-color, #7c5332);
+  margin-bottom: 2px;
+}
+
+.ct-info-sub {
+  display: block;
+  font-size: 6.5pt;
+  color: #999;
+}
+
+/* ── Address highlight ── */
+.ct-address-highlight {
+  background: rgba(var(--primary-color-rgb, 124,83,50), 0.04);
+  border-left: 3px solid var(--primary-color, #7c5332);
+  padding: 8px 14px;
+  border-radius: 0 4px 4px 0;
+  font-size: 8.5pt;
+  font-weight: 600;
+  color: var(--text-color, #2d2016);
+  margin: 6px 0;
+}
+
+/* ── Service box ── */
+.ct-service-box {
+  background: rgba(var(--primary-color-rgb, 124,83,50), 0.03);
+  border: 1px solid rgba(var(--primary-color-rgb, 124,83,50), 0.08);
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin: 6px 0 10px;
+}
+
+.ct-service-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ct-service-label {
+  font-size: 8pt;
+  font-weight: 600;
+  color: #666;
+}
+
+.ct-service-value {
+  font-size: 8pt;
+  font-weight: 700;
+  color: var(--primary-color, #7c5332);
+}
+
+/* ── Signature page ── */
+.ct-signatures-page {
+  margin-top: 30px;
+  padding-top: 20px;
+  page-break-inside: avoid;
+}
+
+.ct-signatures-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.ct-signatures-line-accent {
+  width: 40px;
+  height: 3px;
+  background: var(--primary-color, #7c5332);
+  margin: 0 auto 16px;
+  border-radius: 2px;
+}
+
+.ct-signatures-main-title {
+  font-size: 13pt;
+  font-weight: 800;
+  color: var(--text-color, #2d2016);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 8px;
+}
+
+.ct-signatures-declaration {
+  font-size: 8pt;
+  color: #888;
+  font-style: italic;
+  margin: 0;
+}
+
+.ct-signatures-primary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.ct-sig-block {
+  text-align: center;
+}
+
+.ct-sig-role {
+  font-size: 7pt;
+  font-weight: 700;
+  color: var(--primary-color, #7c5332);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 40px;
+}
+
+.ct-sig-line {
+  border-bottom: 1px solid #bbb;
+  margin: 0 auto 8px;
+  width: 85%;
+}
+
+.ct-sig-line-thin {
+  width: 75%;
+}
+
+.ct-sig-name {
+  font-size: 9pt;
+  font-weight: 600;
+  color: var(--text-color, #2d2016);
+  margin: 0;
+}
+
+.ct-sig-detail {
+  font-size: 7pt;
+  color: #999;
+  margin: 2px 0 0;
+}
+
+.ct-signatures-witnesses {
+  padding-top: 16px;
+}
+
+.ct-sig-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(var(--primary-color-rgb, 124,83,50), 0.1);
+  margin-bottom: 16px;
+}
+
+.ct-witnesses-title {
+  font-size: 7pt;
+  font-weight: 700;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.ct-witnesses-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.ct-sig-witness .ct-sig-line {
+  margin-bottom: 8px;
+}
+
+/* ── Footer (repeating on all pages) ── */
+.ct-footer-repeat {
+  position: relative;
+  margin-top: 20px;
+  padding-top: 10px;
+}
+
+.ct-footer-line {
+  width: 100%;
+  height: 1px;
+  background: var(--primary-color, #7c5332);
+  opacity: 0.3;
+  margin-bottom: 8px;
+}
+
+.ct-footer-content {
+  display: flex;
+  justify-content: space-between;
+  font-size: 6.5pt;
+  color: #aaa;
+}
+
+.ct-footer-left {
+  font-weight: 500;
+}
+
+.ct-footer-right {
+  font-weight: 500;
+}
+
+/* ── Page break control ── */
+.ct-page-break-avoid {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+.ct-clauses .ct-clause {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+.ct-signatures-page {
+  page-break-before: auto;
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+/* Prevent orphan titles */
+.ct-clause-header {
+  page-break-after: avoid !important;
+}
+
+/* ── Legacy selectors (compatibility) ── */
+.pdf-document.contract-style .ct-clause,
+.pdf-document.contract-style .ct-party,
+.pdf-document.contract-style .ct-box,
+.pdf-document.contract-style .ct-signatures-page {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+

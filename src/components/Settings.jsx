@@ -7,7 +7,7 @@ import {
   Save, 
   Upload, 
   Trash2,
-  Lock
+  ScrollText
 } from 'lucide-react';
 
 const WOOD_COLOR_PRESETS = [
@@ -89,14 +89,28 @@ export default function Settings({ settings, onSave }) {
     }));
   };
 
-  const handleAdditionalCostChange = (id, field, value) => {
+  const handleAdditionalCostChange = (serviceId, field, value) => {
     setLocalSettings(prev => ({
       ...prev,
       pricing: {
         ...prev.pricing,
-        additionalCosts: prev.pricing.additionalCosts.map(cost => 
-          cost.id === id ? { ...cost, [field]: value } : cost
-        )
+        services: {
+          ...prev.pricing.services,
+          [serviceId]: { ...prev.pricing.services[serviceId], [field]: value }
+        }
+      }
+    }));
+  };
+
+  const handleServiceValueChange = (serviceId, value) => {
+    setLocalSettings(prev => ({
+      ...prev,
+      pricing: {
+        ...prev.pricing,
+        services: {
+          ...prev.pricing.services,
+          [serviceId]: { ...prev.pricing.services[serviceId], value: parseFloat(value) || 0 }
+        }
       }
     }));
   };
@@ -114,6 +128,43 @@ export default function Settings({ settings, onSave }) {
       disclaimers: prev.disclaimers.map(disc => 
         disc.id === id ? { ...disc, [field]: value } : disc
       )
+    }));
+  };
+
+  const handleContractDefaultsChange = (field, value) => {
+    setLocalSettings(prev => ({
+      ...prev,
+      contractDefaults: { ...prev.contractDefaults, [field]: value }
+    }));
+  };
+
+  const handleContractPaymentChange = (field, value) => {
+    setLocalSettings(prev => ({
+      ...prev,
+      contractDefaults: {
+        ...prev.contractDefaults,
+        payment: { ...prev.contractDefaults.payment, [field]: value }
+      }
+    }));
+  };
+
+  const handleContractDefaultRateChange = (field, value) => {
+    setLocalSettings(prev => ({
+      ...prev,
+      contractDefaults: {
+        ...prev.contractDefaults,
+        defaultRate: { ...prev.contractDefaults.defaultRate, [field]: value }
+      }
+    }));
+  };
+
+  const handleContractDeadlineChange = (field, value) => {
+    setLocalSettings(prev => ({
+      ...prev,
+      contractDefaults: {
+        ...prev.contractDefaults,
+        deadline: { ...prev.contractDefaults.deadline, [field]: value }
+      }
     }));
   };
 
@@ -172,6 +223,14 @@ export default function Settings({ settings, onSave }) {
         >
           <FileText size={16} style={{ display: 'block', margin: '0 auto 4px' }} />
           Cláusulas
+        </button>
+        <button 
+          type="button"
+          className={`settings-tab-btn ${activeTab === 'contracts' ? 'active' : ''}`}
+          onClick={() => setActiveTab('contracts')}
+        >
+          <ScrollText size={16} style={{ display: 'block', margin: '0 auto 4px' }} />
+          Contratos
         </button>
       </div>
 
@@ -422,40 +481,85 @@ export default function Settings({ settings, onSave }) {
             </div>
           </div>
 
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginTop: '10px' }}>Custos Adicionais Padronizados</h4>
+          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginTop: '10px' }}>Serviços Padronizados</h4>
           
-          {localSettings.pricing.additionalCosts.map((cost) => (
-            <div key={cost.id} className="form-group" style={{ padding: '12px', backgroundColor: '#fff', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-              <span className="form-label" style={{ marginBottom: '8px', display: 'block' }}>{cost.name}</span>
-              <div className="form-row" style={{ marginBottom: '8px' }}>
-                <select 
-                  className="form-input select-unit"
-                  value={cost.type}
-                  onChange={(e) => handleAdditionalCostChange(cost.id, 'type', e.target.value)}
-                >
-                  <option value="included">Incluso no valor</option>
-                  <option value="fixed">Valor Fixo comercial</option>
-                  <option value="percentage">% sobre Base de Materiais</option>
-                  <option value="manual">Informar manualmente</option>
-                </select>
-              </div>
-
-              {cost.type !== 'included' && cost.type !== 'manual' && (
-                <div style={{ position: 'relative' }}>
-                  <input 
-                    type="number" 
-                    className="form-input" 
-                    value={cost.value}
-                    onChange={(e) => handleAdditionalCostChange(cost.id, 'value', parseFloat(e.target.value) || 0)}
-                    style={{ paddingRight: '40px' }}
-                  />
-                  <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold' }}>
-                    {cost.type === 'percentage' ? '%' : 'R$'}
-                  </span>
-                </div>
-              )}
+          <div className="form-group" style={{ padding: '12px', backgroundColor: '#fff', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+            <span className="form-label" style={{ marginBottom: '8px', display: 'block' }}>Frete</span>
+            <div className="form-row" style={{ marginBottom: '8px' }}>
+              <select 
+                className="form-input select-unit"
+                value={localSettings.pricing.services?.freight?.type || 'included'}
+                onChange={(e) => handleAdditionalCostChange('freight', 'type', e.target.value)}
+              >
+                <option value="included">Incluso no valor</option>
+                <option value="separate">Valor separado</option>
+              </select>
             </div>
-          ))}
+            {(localSettings.pricing.services?.freight?.type || 'included') === 'separate' && (
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  value={localSettings.pricing.services?.freight?.value || 0}
+                  onChange={(e) => handleServiceValueChange('freight', e.target.value)}
+                  style={{ paddingRight: '40px' }}
+                />
+                <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold' }}>R$</span>
+              </div>
+            )}
+          </div>
+
+          <div className="form-group" style={{ padding: '12px', backgroundColor: '#fff', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+            <span className="form-label" style={{ marginBottom: '8px', display: 'block' }}>Montagem</span>
+            <div className="form-row" style={{ marginBottom: '8px' }}>
+              <select 
+                className="form-input select-unit"
+                value={localSettings.pricing.services?.assembly?.type || 'included'}
+                onChange={(e) => handleAdditionalCostChange('assembly', 'type', e.target.value)}
+              >
+                <option value="included">Inclusa no valor</option>
+                <option value="separate">Valor separado</option>
+              </select>
+            </div>
+            {(localSettings.pricing.services?.assembly?.type || 'included') === 'separate' && (
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  value={localSettings.pricing.services?.assembly?.value || 0}
+                  onChange={(e) => handleServiceValueChange('assembly', e.target.value)}
+                  style={{ paddingRight: '40px' }}
+                />
+                <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold' }}>R$</span>
+              </div>
+            )}
+          </div>
+
+          <div className="form-group" style={{ padding: '12px', backgroundColor: '#fff', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+            <span className="form-label" style={{ marginBottom: '8px', display: 'block' }}>Instalação</span>
+            <div className="form-row" style={{ marginBottom: '8px' }}>
+              <select 
+                className="form-input select-unit"
+                value={localSettings.pricing.services?.installation?.type || 'included'}
+                onChange={(e) => handleAdditionalCostChange('installation', 'type', e.target.value)}
+              >
+                <option value="included">Inclusa no valor</option>
+                <option value="separate">Valor separado</option>
+              </select>
+            </div>
+            {(localSettings.pricing.services?.installation?.type || 'included') === 'separate' && (
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  value={localSettings.pricing.services?.installation?.value || 0}
+                  onChange={(e) => handleServiceValueChange('installation', e.target.value)}
+                  style={{ paddingRight: '40px' }}
+                />
+                <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold' }}>R$</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -631,6 +735,208 @@ export default function Settings({ settings, onSave }) {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Tab 5: Contract Defaults */}
+      {activeTab === 'contracts' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <h3 className="section-title">Configurações Padrão de Contratos</h3>
+
+          <div className="info-box">
+            Estes valores serão usados como padrão ao criar novos contratos. Você pode alterá-los em contratos específicos.
+          </div>
+
+          <div className="add-item-form">
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '10px' }}>Pagamento</h4>
+            
+            <div className="form-group">
+              <label className="form-label">Forma de Pagamento Padrão</label>
+              <select 
+                className="form-input select-unit"
+                value={localSettings.contractDefaults?.payment?.paymentType || 'entrada_saldo'}
+                onChange={(e) => handleContractPaymentChange('paymentType', e.target.value)}
+              >
+                <option value="a_vista">À Vista</option>
+                <option value="entrada_saldo">Entrada + Saldo</option>
+                <option value="parcelado">Parcelado</option>
+                <option value="entrada_parcelas">Entrada + Parcelas</option>
+              </select>
+            </div>
+
+            {localSettings.contractDefaults?.payment?.paymentType !== 'a_vista' && (
+              <div className="form-group">
+                <label className="form-label">Percentual Padrão de Entrada (%)</label>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  value={localSettings.contractDefaults?.payment?.entryPercentage || 50}
+                  onChange={(e) => handleContractPaymentChange('entryPercentage', parseFloat(e.target.value) || 0)}
+                />
+              </div>
+            )}
+
+            {(localSettings.contractDefaults?.payment?.paymentType === 'parcelado' || localSettings.contractDefaults?.payment?.paymentType === 'entrada_parcelas') && (
+              <div className="form-group">
+                <label className="form-label">Número de Parcelas</label>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  value={localSettings.contractDefaults?.payment?.installments || 2}
+                  onChange={(e) => handleContractPaymentChange('installments', parseInt(e.target.value) || 1)}
+                />
+              </div>
+            )}
+
+            <div className="form-group">
+              <label className="form-label">Descrição da Forma de Pagamento</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                value={localSettings.contractDefaults?.payment?.paymentDescription || '50% na aprovação + 50% na entrega'}
+                onChange={(e) => handleContractPaymentChange('paymentDescription', e.target.value)}
+                placeholder="ex: 50% na aprovação + 50% na entrega"
+              />
+            </div>
+
+            {localSettings.contractDefaults?.payment?.paymentType !== 'a_vista' && (
+              <div className="form-group">
+                <label className="form-label">Condição do Saldo</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={localSettings.contractDefaults?.payment?.balanceCondition || 'saldo na entrega dos móveis'}
+                  onChange={(e) => handleContractPaymentChange('balanceCondition', e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="add-item-form">
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '10px' }}>Inadimplência</h4>
+            
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Multa Padrão (%)</label>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  value={localSettings.contractDefaults?.defaultRate?.lateFeePercentage || 2}
+                  onChange={(e) => handleContractDefaultRateChange('lateFeePercentage', parseFloat(e.target.value) || 0)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Juros Padrão (% ao mês)</label>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  value={localSettings.contractDefaults?.defaultRate?.monthlyInterest || 1}
+                  onChange={(e) => handleContractDefaultRateChange('monthlyInterest', parseFloat(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+
+            <div className="cost-toggle-row" style={{ borderBottom: 'none', padding: '0' }}>
+              <span style={{ fontSize: '0.85rem' }}>Correção Monetária Padrão</span>
+              <label className="switch">
+                <input 
+                  type="checkbox" 
+                  checked={localSettings.contractDefaults?.defaultRate?.monetaryCorrection !== false}
+                  onChange={(e) => handleContractDefaultRateChange('monetaryCorrection', e.target.checked)}
+                />
+                <span className="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div className="add-item-form">
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '10px' }}>Prazos</h4>
+            
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Prazo Padrão Fabricação (dias)</label>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  value={localSettings.contractDefaults?.deadline?.fabricationDays || 30}
+                  onChange={(e) => handleContractDeadlineChange('fabricationDays', parseInt(e.target.value) || 0)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Prazo Padrão Instalação (dias)</label>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  value={localSettings.contractDefaults?.deadline?.installationDays || 1}
+                  onChange={(e) => handleContractDeadlineChange('installationDays', parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+
+            <div className="cost-toggle-row" style={{ borderBottom: 'none', padding: '0' }}>
+              <span style={{ fontSize: '0.85rem' }}>Apenas Dias Úteis</span>
+              <label className="switch">
+                <input 
+                  type="checkbox" 
+                  checked={localSettings.contractDefaults?.deadline?.workingDaysOnly !== false}
+                  onChange={(e) => handleContractDeadlineChange('workingDaysOnly', e.target.checked)}
+                />
+                <span className="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div className="add-item-form">
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '10px' }}>Serviços Padrão</h4>
+            
+            <div className="form-group">
+              <label className="form-label">Frete</label>
+              <select 
+                className="form-input select-unit"
+                value={localSettings.contractDefaults?.services?.freight?.type || 'included'}
+                onChange={(e) => handleContractDefaultsChange('freight', e.target.value)}
+              >
+                <option value="included">Incluso</option>
+                <option value="separate">Valor separado</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Montagem</label>
+              <select 
+                className="form-input select-unit"
+                value={localSettings.contractDefaults?.services?.assembly?.type || 'included'}
+                onChange={(e) => handleContractDefaultsChange('assembly', e.target.value)}
+              >
+                <option value="included">Inclusa</option>
+                <option value="separate">Valor separado</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Instalação</label>
+              <select 
+                className="form-input select-unit"
+                value={localSettings.contractDefaults?.services?.installation?.type || 'included'}
+                onChange={(e) => handleContractDefaultsChange('installation', e.target.value)}
+              >
+                <option value="included">Inclusa</option>
+                <option value="separate">Valor separado</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Destino das Sobras</label>
+              <select 
+                className="form-input select-unit"
+                value={localSettings.contractDefaults?.surplus || 'company'}
+                onChange={(e) => handleContractDefaultsChange('surplus', e.target.value)}
+              >
+                <option value="company">Ficam com a marcenaria</option>
+                <option value="client">Entregar ao cliente</option>
+              </select>
+            </div>
+          </div>
         </div>
       )}
 

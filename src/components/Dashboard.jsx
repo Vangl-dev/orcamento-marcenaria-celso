@@ -6,11 +6,11 @@ import {
   Trash2, 
   Edit3, 
   Check, 
-  DollarSign, 
   Calendar, 
   ArrowRight,
   TrendingUp,
-  Package
+  Package,
+  ScrollText
 } from 'lucide-react';
 import { formatCurrency, calculateEstimate } from '../utils/calculator';
 
@@ -20,7 +20,8 @@ export default function Dashboard({
   onCreateNew, 
   onEdit, 
   onDelete,
-  onStatusChange
+  onStatusChange,
+  onConvertToContract
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('todos');
@@ -188,6 +189,16 @@ export default function Dashboard({
                   </div>
 
                   <div className="estimate-actions">
+                    {est.status === 'aprovada' && (
+                      <button 
+                        className="btn-icon" 
+                        title="Converter em Contrato"
+                        onClick={() => onConvertToContract(est)}
+                        style={{ borderColor: '#2f6b3b', backgroundColor: '#e2ede5' }}
+                      >
+                        <ScrollText size={16} style={{ color: '#2f6b3b' }} />
+                      </button>
+                    )}
                     {est.status !== 'aprovada' && (
                       <button 
                         className="btn-icon" 
